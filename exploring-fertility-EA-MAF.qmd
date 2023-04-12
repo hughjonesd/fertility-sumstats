@@ -1,0 +1,307 @@
+---
+title: "Exploring the correlation between per-SNP effects on fertility and on education among rare and common alleles"
+author: "David Hugh-Jones"
+date: 12 April 2023
+abstract: >
+  Genetics for educational attainment have been selected against in modern
+  populations. Observed effect sizes are small, but are substantively large     after correcting for errors in variables. This correction depends on 
+  whether, of genetic variation driving educational attainment, the 
+  as-yet-unmeasured part has the same relationship to fertility as the
+  measured part. To check whether the education/fertility relationship is 
+  the same among rare and common alleles, I use per-allele summary statistics
+  and implement a correction for errors in variables. The education/fertility
+  correlation is about 50% smaller among rare alleles. However, simulations
+  show that the errors-in-variables correction gets less accurate for minimum
+  allele frequencies below 0.05. We cannot yet be sure of the effect size of
+  natural selection on contemporary humans, so more research is needed.
+format: pdf
+linestretch: 1.25
+editor: visual
+bibliography: bibliography.bib
+fig-pos: H
+knitr:
+  opts_chunk:
+    echo: false
+---
+
+```{r}
+#| warning: false
+#| label: libraries
+
+library(dplyr)
+library(ggplot2)
+library(fixest)
+library(vroom)
+library(santoku)
+library(purrr)
+library(scales)
+
+pct <- scales::label_percent(accuracy = 0.1)
+options(digits = 3)
+set.seed(27101975)
+```
+
+```{r}
+#| cache: true
+#| label: data
+
+ea4 <- vroom("EA4_additive_excl_23andMe.txt", show_col_types = FALSE)
+ncb <- vroom("NumberChildrenEverBorn_Pooled.txt", show_col_types = FALSE)
+
+# "effective allele frequency"
+ea4 <- rename(ea4,
+                beta_ea = Beta,
+                eaf_ea4 = EAF_HRC
+              )
+ncb <- rename(ncb,
+                rsID    = SNPID,
+                eaf_ncb = Freq_HapMap,
+                z_ncb   = Zscore
+              )
+
+ss <- inner_join(ea4, ncb, by = "rsID", relationship = "one-to-one")
+
+# create minor allele frequency
+ss$maf <- ifelse(ss$eaf_ea4 < 0.5, ss$eaf_ea4, 1 - ss$eaf_ea4)
+
+ss <- ss |> filter(Effect_allele == A1)
+
+# should I make all betas positive? For calculating distribution of
+# effect sizes? I think not, the variance should be over the actual
+# effect
+
+rm(ea4, ncb) # save memory
+```
+
+## 
+
+*Early draft. Don't quote me on anything.*
+
+Many polygenic scores are undergoing natural selection in contemporary advanced societies. In particular, lower scores for educational attainment (EA) are being selected for. However, effect sizes are small. @hugh2022human estimate that the PGS for EA from @lee2018gene (EA3) was reduced by 0.03 standard deviations in children of the UK Biobank generation, with a similar or slightly smaller reduction in their parents' generation. These are not large effects: a reduction of 0.03 standard deviations means that `r pct(pnorm(0, mean=-0.03))` of the child generation were below the mean of the parent generation.
+
+PGS are created from summary statistics which are estimated with noise. This means that when we regress fertility on a PGS, its effects will be smaller than the effects of the "true polygenic score". This is an errors-in-variables problem. The heritability of EA is about 40%, but in the UK Biobank sample, EA3 only explains about 4.5% of variance in EA. Under standard errors-in-variables assumptions, to find the coefficient of "true PSEA", the true best predictor of EA from genetic data, we should multiply our estimate by the ratio of these variances, giving 0.03 x 40/4.5 = 0.26. A reduction of 0.26 standard deviations in the true measure of EA in one generation would mean that `r pct(pnorm(0, mean=-0.26))` of the child generation were below the mean of the parent generation. This would be socially and economically significant.
+
+This calculation assumes that the relationship between effects on EA and fertility is the same in the unmeasured part of true PSEA as in the measured part. That might not be the case. For example, EA3 and subsequent polygenic scores such as EA4 are estimated using common SNPs which are captured on DNA array chips. Unmeasured PSEA is likely to be partly a result of rare variants or *de novo* mutations. While common alleles which lower EA raise fertility on average, rare alleles and new mutations might simultaneously harm EA and fertility. Or, the relationship may simply be weaker among rare alleles.
+
+While by definition we can't yet learn about the effects of unmeasured PSEA, we can look at existing SNPs to see if the correlation between effects on EA and on fertility is the same among more common and rarer alleles. If it is the same, then that will increase our confidence that the same relationship holds for as-yet-undiscovered variants. If it is not the same, then we will not be so sure.
+
+```{r}
+#| label: estimate-betas
+
+
+make_estimation_groups <- function (data) {
+  probs <- seq(0, 1, length = 1000)
+  probs <- probs^2
+  chop_quantiles(ss$SE, probs = probs, labels = lbl_midpoints())
+}
+
+estimate_beta <- function (x, ...) {
+  reg <- lm(z_ncb ~ beta_ea, data = x)
+  coef <- coef(reg)
+  tibble(
+    n            = nrow(x),
+    var_beta_hat = var(x$beta_ea),
+    mean_SE      = mean(x$SE),
+    mean_maf     = mean(x$maf),
+    # this is just to check that SEs don't vary much in each %ile:
+    sd_SE        = sd(x$SE),
+    var_error    = mean_SE^2,
+    var_beta     = var_beta_hat - var_error,
+    beta_hat     = coef[["beta_ea"]],
+    beta         = ifelse(var_beta > 0, 
+                          beta_hat * var_beta_hat/var_beta, 
+                          NA_real_)
+  )
+}
+
+group_regs <- ss |>
+              group_by(estimation_group = make_estimation_groups(ss)) |>
+              group_modify(estimate_beta, .keep = TRUE)
+
+
+mod_maf <- lm(beta ~ mean_maf, data = group_regs)
+intercept_maf <- coef(mod_maf)["(Intercept)"]
+coef_maf <- coef(mod_maf)["mean_maf"]
+p_value_maf <- coef(summary(mod_maf))["mean_maf", 4]
+
+mod_maf_high <- update(mod_maf, subset = mean_maf > 0.1)
+coef_maf_high <- coef(mod_maf_high)["mean_maf"]
+p_value_maf_high <- coef(summary(mod_maf_high))["mean_maf", 4]
+
+
+```
+
+I downloaded summary statistics for EA4 [@okbay2022polygenic] and for number of children born (NCB) [@barban2016genome] from <https://thessgac.com>. I merged the datasets, discarding SNPs that were not in both. I split the SNPs into groups, by the reported standard error of the EA4 effect size estimate. Within each group, I regressed alleles' NCB betas on their EA4 betas. @fig-pctile-regs-raw plots regression coefficients for each group against the mean MAF within each group. The EA-NCB relationship is apparently weaker for rarer alleles.
+
+```{r}
+#| fig-cap: Regressions of NCB betas on EA4 betas, by mean MAF within each group. The blue line is a loess smoother.
+#| fig-align: center
+#| label: fig-pctile-regs-raw
+
+ggplot(group_regs, aes(mean_maf, beta_hat)) +
+  geom_point(size = 0.8, alpha = 0.8) +
+  geom_smooth(method = "loess", formula = y ~ x) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  theme_light() +
+  labs(
+    x = "Mean MAF",
+    y = "OLS beta"
+  ) 
+```
+
+However, this result could happen mechanically. The per-SNP summary statistics are estimated with error, and this error is larger for rarer alleles, since they are estimated with fewer cases. As a result, we again have an errors-in-variables problem. An unbiased estimate of the true relationship between EA4 effects and fertility will be$$
+\beta = \hat{\beta}\frac{\sigma^2_X+\sigma^2_\eta}{\sigma^2_X}
+$$
+
+where $\hat{\beta}$ is the OLS estimate, $\sigma^2_X$ is the variance of the distribution of true effect sizes and $\sigma^2_\eta$ is the variance of the error term in the estimated effect sizes.
+
+Within each group, I estimated $\sigma^2_X+\sigma^2_\eta$ by the variance of the group's estimated EA4 effect sizes, and $\sigma^2_\eta$ from the square of the mean reported standard error of the EA4 effect size estimates (after adjustment for stratification).[^1] I then calculated the corrected $\beta$ for each group using the formula above.
+
+[^1]: If $\sigma^2_\eta$ was larger than my estimate of $\sigma^2_X+\sigma^2_\eta$, then I discarded the group as containing too little information to be useful.
+
+```{r}
+#| fig-cap: >
+#|  Regressions of NCB betas on EA4 betas, by mean MAF within each group.
+#|  Coefficients corrected for errors in variables. The blue line is a
+#|  loess smoother. The grey line shows the 
+#|  uncorrected smoother from the previous figure.
+#| fig-align: center
+#| label: fig-pctile-regs
+
+
+ggplot(group_regs, aes(mean_maf, beta)) +
+  geom_point(size = 0.8, alpha = 0.8) +
+  geom_smooth(aes(y = beta_hat), se = FALSE, method = "loess", 
+              formula = y ~ x, color = "grey60") +
+  geom_smooth(method = "loess", formula = y ~ x) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  theme_light() +
+  labs(
+    x = "Mean MAF",
+    y = "Corrected beta"
+  )
+
+```
+
+@fig-pctile-regs plots the corrected $\beta$. The correction indeed makes effects of rare alleles absolutely bigger. Nevertheless, there remains a clear negative relationship between MAF and effect size. In a regression of effect size on MAF we can reject the null at p = `r p_value_maf`. The intercept is `r intercept_maf` and the slope is `r coef_maf`, suggesting that rare alleles (MAF $\approx$ 0) will have about half the EA/fertility correlation of common alleles (MAF = 0.5).
+
+However, we have to interpret this cautiously. Simulations (in the appendix) show that the errors-in-variables correction becomes less accurate for small values of MAF.[^2] Also, the lowest MAF in the data is `r min(ss$maf)` -- which implies millions of carriers worldwide. There are obvious risks in extrapolating to rarer alleles.
+
+[^2]: But note that if we exclude groups with a mean MAF below 0.1, there is still a significant slope of mean MAF on $\beta$ of `r coef_maf_high` (p = `r p_value_maf_high`).
+
+These results mostly suggest that more research is needed. The EA/fertility relationship is smaller for rarer SNPs, but not vastly so, and we cannot be sure what happens at very rare alleles. Ultimately the best way to gauge the size of natural selection effects will be to create more accurate polygenic scores for EA and other phenotypes, and relate them directly to fertility.
+
+## Appendix: simulations
+
+The correction method makes the following approximations:
+
+-   The variance of estimated EA4 effect sizes is estimated by pooling estimates within each group.
+-   The variance of errors in effect sizes is estimated by the squared mean of the reported standard errors within each group.
+
+This may be inaccurate if the distributions vary within a group.
+
+To check that the correction method worked, I ran simulations:
+
+-   I drew a simulated true effect on EA4 for each SNP in the data, and added normal noise with the reported standard error for the EA4 effect size to create a simulated observed effect.
+
+-   I created a simulated true effect on NCB, related to the true effect on EA4 and/or to the MAF; and added normal noise to create a simulated observed effect.
+
+-   I split SNPs by their EA4 effect size standard error. I used 1000 quantile groups where quantile $q_n = (n/1000)^2$, i.e. smaller groups for smaller standard errors.
+
+-   I regressed observed NCB effects on observed EA4 effects within groups.
+
+-   I corrected the regression betas as in the main text.
+
+@fig-sims shows the results for different specifications of the relationship between MAF and the EA4/NCB coefficient: constant, linear and nonlinear. The quantile groups were chosen by trial and error, to balance out 2 competing sources of error. A smaller N in each group increases the error of the uncorrected beta estimate, and the error of the estimate of $\sigma^2_X$. On the other hand, a smaller N has a smaller range of reported standard errors of the EA4 betas, which makes the approximation of $\sigma^2_\eta$ by its group mean more accurate. Simulations by the chosen method are roughly accurate down to about MAF = 0.05, but become noisier below that point.
+
+```{r}
+#| label: fig-sims
+#| fig-height: 5
+#| fig-cap: > 
+#|  Simulations. Regressions of simulated observed NCB betas on
+#|  simulated observed EA4 betas. Each dot represents a regression using
+#|  SNPs having EA4 effect size standard errors within a given interval. 
+#|  Grey dots show the uncorrected betas. Black dots are the corrected betas.
+#|  The red dashed
+#|  line shows the simulated true relationship. The blue line is a loess
+#|  smoother. The grey line is a smoother for 
+#|  the uncorrected betas, for comparison. 95% confidence intervals are shown.
+#| fig-subcap: 
+#|   - Constant relationship
+#|   - Linear relationship
+#|   - Linear relationship
+#|   - Nonlinear relationship 
+#| layout-ncol: 2
+n <- nrow(ss)
+
+var_beta_true <- var(ss$beta_ea) - mean(ss$SE)^2
+sd_beta_true <- sqrt(var_beta_true)
+
+simulate <- function (true_relationship) {
+  sim_ss <- tibble(
+              beta_ea_true   = rnorm(n, mean = 0, sd = sd_beta_true),
+              SE             = ss$SE,
+              maf            = ss$maf,
+              beta_ea        = beta_ea_true + rnorm(n, mean = 0, 
+                                                    sd = ss$SE)
+            )
+  sim_ss$estimation_group <- make_estimation_groups(sim_ss)
+
+  sim_ss$z_ncb_true <- true_relationship(sim_ss$beta_ea_true, sim_ss$maf)
+  # real sd of z_ncb after residualizing on beta_ea is about 1
+  # strangely, s.d. of z_ncb doesn't seem to vary much with maf.
+  # this is very different to s.d. of beta_ea
+  sim_ss$z_ncb <- sim_ss$z_ncb_true + rnorm(n, mean = 0, sd = 1) 
+  
+  regs_sim <- sim_ss |>
+                      group_by(estimation_group) |>
+                      group_modify(estimate_beta, .keep = TRUE)
+
+  return(regs_sim)
+}
+
+
+plot_sim <- function(result, true_relationship) {
+  ggplot(result, aes(mean_maf, beta)) + 
+  geom_point(aes(y = beta_hat), size = 0.5, alpha = 0.7, color = "grey80") +
+  geom_point(size = 0.5, alpha = 0.7) + 
+  geom_smooth(method = "loess", formula = y ~ x) + 
+  geom_smooth(method = "loess", formula = y ~ x, aes(y = beta_hat), 
+              color = "darkgrey") + 
+  geom_function(fun = function (maf) true_relationship(1, maf), 
+                color = "darkred", linetype = 2, linewidth = 1.5) +
+  theme_light() + 
+  labs(x = "Mean MAF", y = "beta") + 
+  coord_cartesian(ylim = c(-100, 0))
+}
+
+
+constant_rel <- function (beta_ea4, maf) -60 * beta_ea4
+sim_constant <- simulate(constant_rel)
+plot_sim(sim_constant, constant_rel)
+
+linear_rel <- function (beta_ea4, maf) (-60 + 60 * maf) * beta_ea4
+sim_linear <- simulate(true_relationship = linear_rel)
+plot_sim(sim_linear, linear_rel)
+
+
+linear_rel2 <- function (beta_ea4, maf) (-120 * maf) * beta_ea4
+sim_linear2 <- simulate(true_relationship = linear_rel2)
+plot_sim(sim_linear2, linear_rel2)
+
+nonlinear_rel <- function(beta_ea4, maf) (-60 + 120 * maf^2) * beta_ea4
+sim_nonlinear <- simulate(true_relationship = nonlinear_rel)
+plot_sim(sim_nonlinear, nonlinear_rel)
+
+```
+
+```{r}
+#| include: false
+
+lm(beta ~ mean_maf, sim_constant) |> summary()
+lm(beta ~ mean_maf, sim_linear) |> summary()
+lm(beta ~ mean_maf, sim_linear2) |> summary()
+lm(beta ~ mean_maf + I(mean_maf^2), sim_nonlinear) |> summary()
+```
+
+## References
