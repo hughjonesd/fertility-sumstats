@@ -587,9 +587,10 @@
     },
     "santoku": {
       "Package": "santoku",
-      "Version": "0.9.0",
-      "Source": "unknown",
-      "Hash": "fd70cabbd98cd54b9c7781e2f750198e",
+      "Version": "0.9.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "715e275d32d17f632e254ce138bc8d53",
       "Requirements": [
         "Rcpp",
         "assertthat",
