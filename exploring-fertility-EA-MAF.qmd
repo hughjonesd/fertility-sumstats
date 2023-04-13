@@ -14,6 +14,7 @@ abstract: >
   show that the errors-in-variables correction gets less accurate for minimum
   allele frequencies below 0.05. We cannot yet be sure of the effect size of
   natural selection on contemporary humans, so more research is needed.
+thanks: Currently jobless. Email davidhughjones@gmail.com
 format: pdf
 linestretch: 1.25
 editor: visual
@@ -93,6 +94,7 @@ make_estimation_groups <- function (data) {
   probs <- seq(0, 1, length = 1000)
   probs <- probs^2
   chop_quantiles(ss$SE, probs = probs, labels = lbl_midpoints())
+  
 }
 
 estimate_beta <- function (x, ...) {
@@ -105,7 +107,7 @@ estimate_beta <- function (x, ...) {
     mean_maf     = mean(x$maf),
     # this is just to check that SEs don't vary much in each %ile:
     sd_SE        = sd(x$SE),
-    var_error    = mean_SE^2,
+    var_error    = mean(x$SE^2),
     var_beta     = var_beta_hat - var_error,
     beta_hat     = coef[["beta_ea"]],
     beta         = ifelse(var_beta > 0, 
@@ -155,7 +157,7 @@ $$
 
 where $\hat{\beta}$ is the OLS estimate, $\sigma^2_X$ is the variance of the distribution of true effect sizes and $\sigma^2_\eta$ is the variance of the error term in the estimated effect sizes.
 
-Within each group, I estimated $\sigma^2_X+\sigma^2_\eta$ by the variance of the group's estimated EA4 effect sizes, and $\sigma^2_\eta$ from the square of the mean reported standard error of the EA4 effect size estimates (after adjustment for stratification).[^1] I then calculated the corrected $\beta$ for each group using the formula above.
+Within each group, I estimated $\sigma^2_X+\sigma^2_\eta$ by the variance of the group's estimated EA4 effect sizes, and $\sigma^2_\eta$ from the mean of the squared standard error of the EA4 effect size estimates (as reported, after adjustment for stratification).[^1] I then calculated the corrected $\beta$ for each group using the formula above.
 
 [^1]: If $\sigma^2_\eta$ was larger than my estimate of $\sigma^2_X+\sigma^2_\eta$, then I discarded the group as containing too little information to be useful.
 
@@ -168,18 +170,19 @@ Within each group, I estimated $\sigma^2_X+\sigma^2_\eta$ by the variance of the
 #| fig-align: center
 #| label: fig-pctile-regs
 
-
-ggplot(group_regs, aes(mean_maf, beta)) +
-  geom_point(size = 0.8, alpha = 0.8) +
-  geom_smooth(aes(y = beta_hat), se = FALSE, method = "loess", 
-              formula = y ~ x, color = "grey60") +
-  geom_smooth(method = "loess", formula = y ~ x) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  theme_light() +
-  labs(
-    x = "Mean MAF",
-    y = "Corrected beta"
-  )
+group_regs |> 
+  filter(! is.na(mean_maf), ! is.na(beta)) |> 
+  ggplot(aes(mean_maf, beta)) +
+    geom_point(size = 0.8, alpha = 0.8) +
+    geom_smooth(aes(y = beta_hat), se = FALSE, method = "loess", 
+                formula = y ~ x, color = "grey60") +
+    geom_smooth(method = "loess", formula = y ~ x) +
+    geom_hline(yintercept = 0, linetype = 2) +
+    theme_light() +
+    labs(
+      x = "Mean MAF",
+      y = "Corrected beta"
+    )
 
 ```
 
@@ -262,17 +265,19 @@ simulate <- function (true_relationship) {
 
 
 plot_sim <- function(result, true_relationship) {
-  ggplot(result, aes(mean_maf, beta)) + 
-  geom_point(aes(y = beta_hat), size = 0.5, alpha = 0.7, color = "grey80") +
-  geom_point(size = 0.5, alpha = 0.7) + 
-  geom_smooth(method = "loess", formula = y ~ x) + 
-  geom_smooth(method = "loess", formula = y ~ x, aes(y = beta_hat), 
-              color = "darkgrey") + 
-  geom_function(fun = function (maf) true_relationship(1, maf), 
-                color = "darkred", linetype = 2, linewidth = 1.5) +
-  theme_light() + 
-  labs(x = "Mean MAF", y = "beta") + 
-  coord_cartesian(ylim = c(-100, 0))
+  result |> 
+    filter(! is.na(mean_maf), ! is.na(beta)) |> 
+    ggplot(aes(mean_maf, beta)) + 
+      geom_point(aes(y = beta_hat), size = .5, alpha = .7, color = "grey80") +
+      geom_point(size = 0.5, alpha = 0.7) + 
+      geom_smooth(method = "loess", formula = y ~ x) + 
+      geom_smooth(method = "loess", formula = y ~ x, aes(y = beta_hat), 
+                  color = "darkgrey") + 
+      geom_function(fun = function (maf) true_relationship(1, maf), 
+                    color = "darkred", linetype = 2, linewidth = 1.5) +
+      theme_light() + 
+      labs(x = "Mean MAF", y = "beta") + 
+      coord_cartesian(ylim = c(-100, 0))
 }
 
 
