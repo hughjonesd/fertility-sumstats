@@ -268,11 +268,12 @@ plot_sim <- function(result, true_relationship) {
   result |> 
     filter(! is.na(mean_maf), ! is.na(beta)) |> 
     ggplot(aes(mean_maf, beta)) + 
-      geom_point(aes(y = beta_hat), size = .5, alpha = .7, color = "grey80") +
+      geom_point(aes(y = beta_hat), size = 0.5, alpha = 0.7, 
+                 color = "grey80") +
       geom_point(size = 0.5, alpha = 0.7) + 
       geom_smooth(method = "loess", formula = y ~ x) + 
-      geom_smooth(method = "loess", formula = y ~ x, aes(y = beta_hat), 
-                  color = "darkgrey") + 
+      geom_smooth(method = "loess", formula = y ~ x, 
+                  mapping = aes(y = beta_hat), color = "darkgrey") + 
       geom_function(fun = function (maf) true_relationship(1, maf), 
                     color = "darkred", linetype = 2, linewidth = 1.5) +
       theme_light() + 

@@ -9,3 +9,5 @@ https://thessgac.com/papers/7
 You'll need R, quarto, and the R renv library. Then start R in the project directory
 and call `renv::restore()` to install 
 other required libraries.
+
+The current version of the working paper is the PDF file above.
