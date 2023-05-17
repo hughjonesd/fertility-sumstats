@@ -290,6 +290,6 @@ cov_rlrs_pgs_true_hat * sqrt(h2) * sd_ea_years
 
 ## Conclusion
 
-I thought this would be useful for anyone who is a statistical schmo like me. For a more rigorous treatment, see e.g. the appendix to Beauchamp (2016).
+I thought this would be useful for anyone who is a statistical schmo like me. For a more rigorous treatment, see e.g. the appendix to Beauchamp (2016); or Becker et al. (2021) [here](https://research.vu.nl/ws/portalfiles/portal/152631985/Resource_profile_and_user_guide_of_the_Polygenic_Index_Repository.pdf).
 
 You can get the raw code for this document [here](https://github.com/hughjonesd/fertility-sumstats/docs/estimating-selection-effects-idiots-guide.qmd), and play with the parameters yourself.
