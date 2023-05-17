@@ -80,7 +80,9 @@ rm(ea4, ncb) # save memory
 
 Many polygenic scores are undergoing natural selection in contemporary advanced societies. In particular, lower scores for educational attainment (EA) are being selected for [@beauchamp2016genetic]. However, effect sizes are small. @hugh2022human estimate that the PGS for EA from @lee2018gene (EA3) was reduced by 0.03 standard deviations in children of the UK Biobank generation, with a similar or slightly smaller reduction in their parents' generation. These are not large effects: a reduction of 0.03 standard deviations means that `r pct(pnorm(0, mean=-0.03))` of the child generation were below the mean of the parent generation.
 
-PGS are created from summary statistics which are estimated with noise. This means that when we regress fertility on a PGS, its effects will be smaller than the effects of the "true polygenic score". This is an errors-in-variables problem. The heritability of EA is about 40%, but in the UK Biobank sample, EA3 only explains about 4.5% of variance in EA. Under standard errors-in-variables assumptions, to find the coefficient of "true PSEA", the true best predictor of EA from genetic data, we should multiply our estimate by the ratio of these variances, giving 0.03 x 40/4.5 = 0.26. A reduction of 0.26 standard deviations in the true measure of EA in one generation would mean that `r pct(pnorm(0, mean=-0.26))` of the child generation were below the mean of the parent generation. This would be socially and economically significant.
+PGS are created from summary statistics which are estimated with noise. This means that when we regress fertility on a PGS, its effects will be smaller than the effects of the "true polygenic score". This is an errors-in-variables problem. The heritability of EA is about 40%, but in the UK Biobank sample, EA3 only explains about 4.5% of variance in EA. Under standard errors-in-variables assumptions, to find the coefficient of "true PSEA", the true best predictor of EA from genetic data, we should multiply our estimate by the ratio of these variances, giving $0.03 \times \sqrt{40/4.5} = 0.09$. A reduction of 0.09 standard deviations in the true measure of EA in one generation would mean that `r pct(pnorm(0, mean = -0.03 * sqrt(40/4.5)))` of the child generation were below the mean of the parent generation. This would be relatively more significant, socially and economically.[^1]
+
+[^1]: An earlier version of this paper calculated this statistic wrongly. See [here](https://hughjonesd.github.io/fertility-sumstats/estimating-selection-effects-idiots-guide.html) for a simple introduction.
 
 This calculation assumes that the relationship between effects on EA and fertility is the same in the unmeasured part of true PSEA as in the measured part. That might not be the case. For example, EA3 and subsequent polygenic scores such as EA4 are estimated using common SNPs which are captured on DNA array chips. Unmeasured PSEA is likely to be partly a result of rare variants or *de novo* mutations. While common alleles which lower EA raise fertility on average, rare alleles and new mutations might simultaneously harm EA and fertility [@gardner2022reduced] -- for example, because rare alleles are more likely to have relatively serious effects [@zeng2018signatures]. Or, the relationship may simply be weaker among rare alleles.
 
@@ -157,9 +159,9 @@ $$
 
 where $\hat{\beta}$ is the OLS estimate, $\sigma^2_X$ is the variance of the distribution of true effect sizes and $\sigma^2_\eta$ is the variance of the error term in the estimated effect sizes.
 
-Within each group, I estimated $\sigma^2_X+\sigma^2_\eta$ by the variance of the group's estimated EA4 effect sizes, and $\sigma^2_\eta$ from the mean of the squared standard error of the EA4 effect size estimates (as reported, after adjustment for stratification).[^1] I then calculated the corrected $\beta$ for each group using the formula above.
+Within each group, I estimated $\sigma^2_X+\sigma^2_\eta$ by the variance of the group's estimated EA4 effect sizes, and $\sigma^2_\eta$ from the mean of the squared standard error of the EA4 effect size estimates (as reported, after adjustment for stratification).[^2] I then calculated the corrected $\beta$ for each group using the formula above.
 
-[^1]: If $\sigma^2_\eta$ was larger than my estimate of $\sigma^2_X+\sigma^2_\eta$, then I discarded the group as containing too little information to be useful.
+[^2]: If $\sigma^2_\eta$ was larger than my estimate of $\sigma^2_X+\sigma^2_\eta$, then I discarded the group as containing too little information to be useful.
 
 ```{r}
 #| fig-cap: >
@@ -188,9 +190,9 @@ group_regs |>
 
 @fig-pctile-regs plots the corrected $\beta$. The correction indeed makes effects of rare alleles absolutely bigger. Nevertheless, there remains a clear negative relationship between MAF and effect size. In a regression of effect size on MAF we can reject the null at p = `r p_value_maf`. The intercept is `r intercept_maf` and the slope is `r coef_maf`, suggesting that rare alleles (MAF $\approx$ 0) will have about half the EA/fertility correlation of common alleles (MAF = 0.5).
 
-However, we have to interpret this cautiously. Simulations (in the appendix) show that the errors-in-variables correction becomes less accurate for small values of MAF.[^2] Also, the lowest MAF in the data is `r min(ss$maf)` -- which implies millions of carriers worldwide. There are obvious risks in extrapolating to rarer alleles.
+However, we have to interpret this cautiously. Simulations (in the appendix) show that the errors-in-variables correction becomes less accurate for small values of MAF.[^3] Also, the lowest MAF in the data is `r min(ss$maf)` -- which implies millions of carriers worldwide. There are obvious risks in extrapolating to rarer alleles.
 
-[^2]: But note that if we exclude groups with a mean MAF below 0.1, there is still a significant slope of mean MAF on $\beta$ of `r coef_maf_high` (p = `r p_value_maf_high`).
+[^3]: But note that if we exclude groups with a mean MAF below 0.1, there is still a significant slope of mean MAF on $\beta$ of `r coef_maf_high` (p = `r p_value_maf_high`).
 
 These results mostly suggest that more research is needed. The EA/fertility relationship is smaller for rarer SNPs, but not vastly so, and we cannot be sure what happens at very rare alleles. Ultimately the best way to gauge the size of natural selection effects will be to create more accurate polygenic scores for EA and other phenotypes, and relate them directly to fertility.
 
