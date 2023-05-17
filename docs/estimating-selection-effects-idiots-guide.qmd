@@ -33,7 +33,7 @@ Let's simulate two generations, using the very helpful [{faux}](https://debruine
 
 ```{r setup}
 suppressPackageStartupMessages(library(faux))
-
+library(ggplot2)
 options(digits = 3)
 
 rsq <- function(f) summary(lm(f, data = pop))$r.squared
@@ -49,13 +49,14 @@ Now we'll create our data.
 
 ```{r simulate-population-data}
 
-
-n <- 3e5
+# I'll use a big sample to show that the estimates are indeed
+# accurate "in the limit"
+n <- 1e6
 # This is what we'd like to estimate:
-selection_effect <- 0.2
+selection_effect <- 0.1
 
 # This is related to the variance of RLRS:
-rlrs_dispersion <- 4
+rlrs_dispersion <- 3
 
 # Generate random variables: true PGS for educational attainment,
 # Relative Lifetime Reproductive Success 
@@ -74,6 +75,12 @@ pop$rlrs <- norm2negbin(pop$rlrs, mu = 1, size = rlrs_dispersion)
 We can check our population parameters look right:
 
 ```{r check-population}
+
+
+ggplot(pop, aes(rlrs)) + 
+  geom_bar(aes(y = after_stat(prop))) +
+  theme_light() + 
+  labs(x = "RLRS", y= "Proportion of population")
 
 # Our PGS is normalized with mean 0 variance 1:
 mean(pop$pgs_true)
@@ -95,7 +102,7 @@ Let's also simulate data on individuals' educational attainment. For simplicity 
 
 ```{r simulate-population-ea}
 # the heritability of EA:
-h2 <- 0.4
+h2 <- 0.45
 pop$EA <- faux::rnorm_pre(pop$pgs_true, mu = 0, sd = 1, r = sqrt(h2))
 ```
 
@@ -123,7 +130,7 @@ $$
 
 # this is the variance of the error in measured pgs
 # (relative to the true pgs variance of 1)
-s2_eta <- 5
+s2_eta <- 7
 pgs <- pop$pgs_true + rnorm(n, 0, sqrt(s2_eta))
 
 # We don't know s2_eta, though we will be able to infer it

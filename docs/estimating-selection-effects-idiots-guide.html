@@ -143,7 +143,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Let’s simulate two generations, using the very helpful <a href="https://debruine.github.io/faux/">{faux}</a> package by Lisa Debruine. First some useful functions:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(faux))</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>rsq <span class="ot">&lt;-</span> <span class="cf">function</span>(f) <span class="fu">summary</span>(<span class="fu">lm</span>(f, <span class="at">data =</span> pop))<span class="sc">$</span>r.squared</span>
@@ -156,64 +156,73 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 <p>Now we’ll create our data.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="fl">3e5</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># This is what we'd like to estimate:</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>selection_effect <span class="ot">&lt;-</span> <span class="fl">0.2</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># This is related to the variance of RLRS:</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>rlrs_dispersion <span class="ot">&lt;-</span> <span class="dv">4</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate random variables: true PGS for educational attainment,</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Relative Lifetime Reproductive Success </span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>pop <span class="ot">&lt;-</span> faux<span class="sc">::</span><span class="fu">rmulti</span>(<span class="at">n =</span> n, </span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>                    <span class="at">dist =</span> <span class="fu">c</span>(<span class="at">pgs_true =</span> <span class="st">"norm"</span>, <span class="at">rlrs =</span> <span class="st">"norm"</span>,</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>                             <span class="at">pgs =</span> <span class="st">"norm"</span>),</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">params =</span> <span class="fu">list</span>(</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">pgs_true =</span> <span class="fu">list</span>(<span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">1</span>),</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">rlrs =</span> <span class="fu">list</span>(<span class="at">mean =</span> <span class="dv">1</span>, <span class="at">sd =</span> <span class="dv">1</span>)),</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>                    <span class="at">r =</span> selection_effect)</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>rlrs <span class="ot">&lt;-</span> <span class="fu">norm2negbin</span>(pop<span class="sc">$</span>rlrs, <span class="at">mu =</span> <span class="dv">1</span>, <span class="at">size =</span> rlrs_dispersion)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># I'll use a big sample to show that the estimates are indeed</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># accurate "in the limit"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="fl">1e6</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># This is what we'd like to estimate:</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>selection_effect <span class="ot">&lt;-</span> <span class="fl">0.1</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># This is related to the variance of RLRS:</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>rlrs_dispersion <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate random variables: true PGS for educational attainment,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Relative Lifetime Reproductive Success </span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>pop <span class="ot">&lt;-</span> faux<span class="sc">::</span><span class="fu">rmulti</span>(<span class="at">n =</span> n, </span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">dist =</span> <span class="fu">c</span>(<span class="at">pgs_true =</span> <span class="st">"norm"</span>, <span class="at">rlrs =</span> <span class="st">"norm"</span>,</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>                             <span class="at">pgs =</span> <span class="st">"norm"</span>),</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>                    <span class="at">params =</span> <span class="fu">list</span>(</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">pgs_true =</span> <span class="fu">list</span>(<span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">1</span>),</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">rlrs =</span> <span class="fu">list</span>(<span class="at">mean =</span> <span class="dv">1</span>, <span class="at">sd =</span> <span class="dv">1</span>)),</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>                    <span class="at">r =</span> selection_effect)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>rlrs <span class="ot">&lt;-</span> <span class="fu">norm2negbin</span>(pop<span class="sc">$</span>rlrs, <span class="at">mu =</span> <span class="dv">1</span>, <span class="at">size =</span> rlrs_dispersion)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We can check our population parameters look right:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Our PGS is normalized with mean 0 variance 1:</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(pop<span class="sc">$</span>pgs_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] -0.00159</code></pre>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pop, <span class="fu">aes</span>(rlrs)) <span class="sc">+</span> </span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">after_stat</span>(prop))) <span class="sc">+</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span> </span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"RLRS"</span>, <span class="at">y=</span> <span class="st">"Proportion of population"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="estimating-selection-effects-idiots-guide_files/figure-html/check-population-1.png" class="img-fluid" width="672"></p>
 </div>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">var</span>(pop<span class="sc">$</span>pgs_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Our PGS is normalized with mean 0 variance 1:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(pop<span class="sc">$</span>pgs_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.995</code></pre>
+<pre><code>[1] -0.0015</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># RLRS has mean 1:</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">var</span>(pop<span class="sc">$</span>pgs_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 1</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Covariance of RLRS with the true PGS:</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cov</span>(pop<span class="sc">$</span>pgs_true, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># RLRS has mean 1:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.199</code></pre>
+<pre><code>[1] 1</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># and the mean pgs_true in the children's generation</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># i.e. the change in one generation, measured in standard deviations:</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">weighted.mean</span>(pop<span class="sc">$</span>pgs_true, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Covariance of RLRS with the true PGS:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cov</span>(pop<span class="sc">$</span>pgs_true, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.197</code></pre>
+<pre><code>[1] 0.106</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># and the mean pgs_true in the children's generation</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># i.e. the change in one generation, measured in standard deviations:</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">weighted.mean</span>(pop<span class="sc">$</span>pgs_true, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.104</code></pre>
 </div>
 </div>
 <p>Let’s also simulate data on individuals’ educational attainment. For simplicity I’ll just normalize this to mean 0, variance 1.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the heritability of EA:</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>h2 <span class="ot">&lt;-</span> <span class="fl">0.4</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>EA <span class="ot">&lt;-</span> faux<span class="sc">::</span><span class="fu">rnorm_pre</span>(pop<span class="sc">$</span>pgs_true, <span class="at">mu =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">1</span>, <span class="at">r =</span> <span class="fu">sqrt</span>(h2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the heritability of EA:</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>h2 <span class="ot">&lt;-</span> <span class="fl">0.45</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>EA <span class="ot">&lt;-</span> faux<span class="sc">::</span><span class="fu">rnorm_pre</span>(pop<span class="sc">$</span>pgs_true, <span class="at">mu =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">1</span>, <span class="at">r =</span> <span class="fu">sqrt</span>(h2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We can check that indeed, the regression of educational attainment on the true PGS gives an r-squared about equal to the heritability:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rsq</span>(EA <span class="sc">~</span> pgs_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rsq</span>(EA <span class="sc">~</span> pgs_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.4</code></pre>
+<pre><code>[1] 0.45</code></pre>
 </div>
 </div>
 <p>Now let’s move into the world of the analyst. We don’t see the true PGS, we just have one measured with error. We can think of it as the true score plus some random noise:</p>
@@ -226,18 +235,18 @@ pgs = pgs^* + \eta
 pgs = \frac{pgs^* + \eta}{sd(pgs)}
 \]</span></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this is the variance of the error in measured pgs</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># (relative to the true pgs variance of 1)</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>s2_eta <span class="ot">&lt;-</span> <span class="dv">5</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>pgs <span class="ot">&lt;-</span> pop<span class="sc">$</span>pgs_true <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, <span class="fu">sqrt</span>(s2_eta))</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co"># We don't know s2_eta, though we will be able to infer it</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co"># instead we assume the pgs is normalized to variance 1</span></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co"># This is roughly sqrt(var(pgs_true) + var(eta)) = sqrt(1 + s2_eta)</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>sd_pgs_orig <span class="ot">&lt;-</span> <span class="fu">sd</span>(pgs)</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>pgs <span class="ot">&lt;-</span> pgs<span class="sc">/</span>sd_pgs_orig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this is the variance of the error in measured pgs</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co"># (relative to the true pgs variance of 1)</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>s2_eta <span class="ot">&lt;-</span> <span class="dv">7</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>pgs <span class="ot">&lt;-</span> pop<span class="sc">$</span>pgs_true <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, <span class="fu">sqrt</span>(s2_eta))</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co"># We don't know s2_eta, though we will be able to infer it</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co"># instead we assume the pgs is normalized to variance 1</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># This is roughly sqrt(var(pgs_true) + var(eta)) = sqrt(1 + s2_eta)</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>sd_pgs_orig <span class="ot">&lt;-</span> <span class="fu">sd</span>(pgs)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>pgs <span class="ot">&lt;-</span> pgs<span class="sc">/</span>sd_pgs_orig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>But we can estimate <span class="math inline">\(\sigma^2_\eta\)</span> by regressing EA on our measured PGS and comparing the r-squared with our prior estimate of the true heritability. This comes from errors-in-variables theory, which gives formulas for the relationship between a regression with a noisy independent variable, and the regression with the true variable. (<a href="https://econ.lse.ac.uk/staff/spischke/ec524/Merr_new.pdf">Here’s a good introduction.</a>)</p>
 <p><span class="math display">\[
@@ -247,14 +256,14 @@ R^2 (pgs) = R^2 (pgs^*)\times \frac{Var(pgs^*)}{Var(pgs)} \\
 <p>(There’s a nice proof of this <a href="https://stats.stackexchange.com/a/239320/86878">here</a>.)</p>
 <p>Rearranging, we can estimate <span class="math inline">\(\sigma^2_\eta\)</span>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The R-squared of our measured pgs</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>r2_EA_pgs <span class="ot">&lt;-</span> <span class="fu">rsq</span>(EA <span class="sc">~</span> pgs)</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>s2_eta_hat <span class="ot">&lt;-</span> h2<span class="sc">/</span>r2_EA_pgs <span class="sc">-</span> <span class="dv">1</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>s2_eta_hat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The R-squared of our measured pgs</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>r2_EA_pgs <span class="ot">&lt;-</span> <span class="fu">rsq</span>(EA <span class="sc">~</span> pgs)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>s2_eta_hat <span class="ot">&lt;-</span> h2<span class="sc">/</span>r2_EA_pgs <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>s2_eta_hat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 5.12</code></pre>
+<pre><code>[1] 6.98</code></pre>
 </div>
 </div>
 <p>That looks about right. Note that</p>
@@ -263,23 +272,23 @@ R^2 (pgs) = R^2 (pgs^*)\times \frac{Var(pgs^*)}{Var(pgs)} \\
 \]</span></p>
 <p>Now we can estimate the covariance of RLRS and our measured PGS. That will give us the predicted score of our measured PGS in the next generation.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Now we can estimate the covariance of rlrs and the measured pgs</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs <span class="ot">&lt;-</span> <span class="fu">cov</span>(pop<span class="sc">$</span>rlrs, pop<span class="sc">$</span>pgs)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Now we can estimate the covariance of rlrs and the measured pgs</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs <span class="ot">&lt;-</span> <span class="fu">cov</span>(pop<span class="sc">$</span>rlrs, pop<span class="sc">$</span>pgs)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.0794</code></pre>
+<pre><code>[1] 0.0368</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Or equivalently, since the pgs has variance 1</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>coef_pgs <span class="ot">&lt;-</span> <span class="fu">coef</span>(<span class="fu">lm</span>(rlrs <span class="sc">~</span> pgs, pop))[<span class="st">"pgs"</span>]</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>coef_pgs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Or equivalently, since the pgs has variance 1</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>coef_pgs <span class="ot">&lt;-</span> <span class="fu">coef</span>(<span class="fu">lm</span>(rlrs <span class="sc">~</span> pgs, pop))[<span class="st">"pgs"</span>]</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>coef_pgs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   pgs 
-0.0794 </code></pre>
+0.0368 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># which is close to the average in the next generation:</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">weighted.mean</span>(pop<span class="sc">$</span>pgs, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># which is close to the average in the next generation:</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">weighted.mean</span>(pop<span class="sc">$</span>pgs, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.0807</code></pre>
+<pre><code>[1] 0.0353</code></pre>
 </div>
 </div>
 <p>But what we really want to know is the covariance of the true PGS with RLRS. That will give us the average true PGS in the next generation - measured in standard deviations.</p>
@@ -296,43 +305,43 @@ R^2 (pgs) = R^2 (pgs^*)\times \frac{Var(pgs^*)}{Var(pgs)} \\
 \]</span></p>
 <p>We can check this if we regress RLRS on the true PGS. But we have to rescale the true PGS, the same as we did for the measured PGS, so it is equal to the measured PGS minus error:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>pgs_true_rescaled <span class="ot">&lt;-</span> pop<span class="sc">$</span>pgs_true<span class="sc">/</span>sd_pgs_orig</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>coef_pgs_true_rescaled <span class="ot">&lt;-</span> <span class="fu">coef</span>(<span class="fu">lm</span>(rlrs <span class="sc">~</span> pgs_true_rescaled, pop))[<span class="st">"pgs_true_rescaled"</span>]</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>coef_pgs_true_rescaled</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>pgs_true_rescaled <span class="ot">&lt;-</span> pop<span class="sc">$</span>pgs_true<span class="sc">/</span>sd_pgs_orig</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>coef_pgs_true_rescaled <span class="ot">&lt;-</span> <span class="fu">coef</span>(<span class="fu">lm</span>(rlrs <span class="sc">~</span> pgs_true_rescaled, pop))[<span class="st">"pgs_true_rescaled"</span>]</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>coef_pgs_true_rescaled</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>pgs_true_rescaled 
-             0.49 </code></pre>
+            0.299 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Ratio of coefficients...</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>coef_pgs<span class="sc">/</span>coef_pgs_true_rescaled</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Ratio of coefficients...</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>coef_pgs<span class="sc">/</span>coef_pgs_true_rescaled</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  pgs 
-0.162 </code></pre>
+0.123 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ... is indeed close to ratio of R2 on education, to heritability</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>r2_EA_pgs<span class="sc">/</span>h2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ... is indeed close to ratio of R2 on education, to heritability</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>r2_EA_pgs<span class="sc">/</span>h2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.163</code></pre>
+<pre><code>[1] 0.125</code></pre>
 </div>
 </div>
 <p>Of course, as analysts, we don’t observe the real rescaled PGS. We can only check this here because we have simulated our data!</p>
 <p><strong>Step 2.</strong> We want to measure the selection effect of the true PGS in its original form, i.e.&nbsp;with mean 0 and standard deviation 1.</p>
-<p>Recall that the measured PGS was “rescaled” by its standard deviation. This standard deviation (<code>sd_pgs_orig</code> in the code above, which equalled 2.45) is the square root of the total variance of the measured PGS on its original scale:</p>
+<p>Recall that the measured PGS was “rescaled” by its standard deviation. This standard deviation (<code>sd_pgs_orig</code> in the code above, which equalled 2.83) is the square root of the total variance of the measured PGS on its original scale:</p>
 <p><span class="math display">\[
 sd(orig. pgs) =\sqrt{1 + \sigma^2_\eta}
 \]</span></p>
 <p>Again, we have an estimate for this: it is just the square root of <span class="math inline">\(h^2/R^2(pgs)\)</span>.</p>
 <p>So, combining steps 1 and 2: we need to <em>multiply</em> our original estimate by <span class="math inline">\(h^2/R^2(pgs)\)</span> to correct for errors in variables; and <em>divide</em> by <span class="math inline">\(\sqrt{h^2/R^2(pgs)}\)</span> to rescale. Equivalently, we can just multiply by <span class="math inline">\(\sqrt{h^2/R^2(pgs)}\)</span> .</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat <span class="ot">&lt;-</span> cov_rlrs_pgs <span class="sc">*</span> <span class="fu">sqrt</span>(h2<span class="sc">/</span>r2_EA_pgs)</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat <span class="ot">&lt;-</span> cov_rlrs_pgs <span class="sc">*</span> <span class="fu">sqrt</span>(h2<span class="sc">/</span>r2_EA_pgs)</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.196</code></pre>
+<pre><code>[1] 0.104</code></pre>
 </div>
 </div>
-<p>And indeed this is close to the original selection effect of 0.2 .</p>
+<p>And indeed this is close to the original selection effect of 0.1 .</p>
 <section id="assumptions" class="level2">
 <h2 class="anchored" data-anchor-id="assumptions">Assumptions</h2>
 <p>There are important assumptions here.</p>
@@ -349,51 +358,51 @@ sd(orig. pgs) =\sqrt{1 + \sigma^2_\eta}
 <h2 class="anchored" data-anchor-id="rescaling">Rescaling</h2>
 <p>Lastly, what if we want to measure the effect of our polygenic score in terms of (e.g.) years of education? Since our estimate is in standard deviations of educational attainment, we just need to rescale it.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>sd_ea_years <span class="ot">&lt;-</span> <span class="dv">2</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="co"># obviously a bit silly, since EA is not normally distributed!</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>EA_years <span class="ot">&lt;-</span> <span class="dv">18</span> <span class="sc">+</span> pop<span class="sc">$</span>EA <span class="sc">*</span> sd_ea_years</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>eff_pgs_true <span class="ot">&lt;-</span> <span class="fu">coef</span>(<span class="fu">lm</span>(EA_years <span class="sc">~</span> pgs_true, pop))[<span class="st">"pgs_true"</span>]</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>pgs_true_years <span class="ot">&lt;-</span> pop<span class="sc">$</span>pgs_true <span class="sc">*</span> eff_pgs_true</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a><span class="co"># exactly 1</span></span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a><span class="fu">coef</span>(<span class="fu">lm</span>(EA_years <span class="sc">~</span> pgs_true_years, pop))[<span class="st">"pgs_true_years"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>sd_ea_years <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="co"># obviously a bit silly, since EA is not normally distributed!</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>EA_years <span class="ot">&lt;-</span> <span class="dv">18</span> <span class="sc">+</span> pop<span class="sc">$</span>EA <span class="sc">*</span> sd_ea_years</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>eff_pgs_true <span class="ot">&lt;-</span> <span class="fu">coef</span>(<span class="fu">lm</span>(EA_years <span class="sc">~</span> pgs_true, pop))[<span class="st">"pgs_true"</span>]</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>pop<span class="sc">$</span>pgs_true_years <span class="ot">&lt;-</span> pop<span class="sc">$</span>pgs_true <span class="sc">*</span> eff_pgs_true</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="co"># exactly 1</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a><span class="fu">coef</span>(<span class="fu">lm</span>(EA_years <span class="sc">~</span> pgs_true_years, pop))[<span class="st">"pgs_true_years"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>pgs_true_years 
              1 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the selection effect in terms of predicted years of education:</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cov</span>(pop<span class="sc">$</span>rlrs, pop<span class="sc">$</span>pgs_true_years)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the selection effect in terms of predicted years of education:</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cov</span>(pop<span class="sc">$</span>rlrs, pop<span class="sc">$</span>pgs_true_years)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.252</code></pre>
+<pre><code>[1] 0.142</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">weighted.mean</span>(pop<span class="sc">$</span>pgs_true_years, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">weighted.mean</span>(pop<span class="sc">$</span>pgs_true_years, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.25</code></pre>
+<pre><code>[1] 0.14</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># our estimate of the selection effect, </span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="co"># rescaled by the standard deviation of EA in years:</span></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat <span class="sc">*</span> eff_pgs_true</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># our estimate of the selection effect, </span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="co"># rescaled by the standard deviation of EA in years:</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat <span class="sc">*</span> eff_pgs_true</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>pgs_true 
-   0.249 </code></pre>
+   0.139 </code></pre>
 </div>
 </div>
 <p>But how do we work out the rescaling factor? We can work it out by taking the square root of the heritability (as an estimate of the effect size of <span class="math inline">\(pgs^*\)</span> on EA in standard deviations); and multiplying by the s.d. of EA in years (here 2):</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>eff_pgs_true</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>eff_pgs_true</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>pgs_true 
-    1.27 </code></pre>
+    1.34 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sqrt</span>(h2) <span class="sc">*</span> sd_ea_years</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sqrt</span>(h2) <span class="sc">*</span> sd_ea_years</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 1.26</code></pre>
+<pre><code>[1] 1.34</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># selection effect measured in years of education</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat <span class="sc">*</span> <span class="fu">sqrt</span>(h2) <span class="sc">*</span> sd_ea_years</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># selection effect measured in years of education</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat <span class="sc">*</span> <span class="fu">sqrt</span>(h2) <span class="sc">*</span> sd_ea_years</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.248</code></pre>
+<pre><code>[1] 0.139</code></pre>
 </div>
 </div>
 </section>
