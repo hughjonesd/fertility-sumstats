@@ -5,6 +5,16 @@ format: html
 editor: visual
 ---
 
+```{r}
+#| include: false
+
+# You'll need the quarto package. Then just do
+#
+# quarto::render("estimating-selection-effects-idiots-guide.qmd")
+#
+# 
+```
+
 We're interested in how natural selection is changing mean polygenic scores. In particular, we want to know how big the change is in one generation. We have at our disposal:
 
 -   A dataset of individuals, with their polygenic score predicting (e.g.) educational attainment.

@@ -180,27 +180,27 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Our PGS is normalized with mean 0 variance 1:</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(pop<span class="sc">$</span>pgs_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -0.00296</code></pre>
+<pre><code>[1] 0.00207</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">var</span>(pop<span class="sc">$</span>pgs_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.995</code></pre>
+<pre><code>[1] 1</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># RLRS has mean 1:</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.998</code></pre>
+<pre><code>[1] 1</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Covariance of RLRS with the true PGS:</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cov</span>(pop<span class="sc">$</span>pgs_true, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.201</code></pre>
+<pre><code>[1] 0.203</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># and the mean pgs_true in the children's generation</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># i.e. the change in one generation, measured in standard deviations:</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">weighted.mean</span>(pop<span class="sc">$</span>pgs_true, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.199</code></pre>
+<pre><code>[1] 0.205</code></pre>
 </div>
 </div>
 <p>Let’s also simulate data on individuals’ educational attainment. For simplicity I’ll just normalize this to mean 0, variance 1.</p>
@@ -213,7 +213,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rsq</span>(EA <span class="sc">~</span> pgs_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.4</code></pre>
+<pre><code>[1] 0.403</code></pre>
 </div>
 </div>
 <p>Now let’s move into the world of the analyst. We don’t see the true PGS, we just have one measured with error. We can think of it as the true score plus some random noise:</p>
@@ -254,7 +254,7 @@ R^2 (pgs) = R^2 (pgs^*)\times \frac{Var(pgs^*)}{Var(pgs)} \\
 <span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>s2_eta_hat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 5</code></pre>
+<pre><code>[1] 5.01</code></pre>
 </div>
 </div>
 <p>That looks about right. Note that</p>
@@ -267,19 +267,19 @@ R^2 (pgs) = R^2 (pgs^*)\times \frac{Var(pgs^*)}{Var(pgs)} \\
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs <span class="ot">&lt;-</span> <span class="fu">cov</span>(pop<span class="sc">$</span>rlrs, pop<span class="sc">$</span>pgs)</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.0821</code></pre>
+<pre><code>[1] 0.0828</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Or equivalently, since the pgs has variance 1</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>coef_pgs <span class="ot">&lt;-</span> <span class="fu">coef</span>(<span class="fu">lm</span>(rlrs <span class="sc">~</span> pgs, pop))[<span class="st">"pgs"</span>]</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>coef_pgs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   pgs 
-0.0821 </code></pre>
+0.0828 </code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># which is close to the average in the next generation:</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">weighted.mean</span>(pop<span class="sc">$</span>pgs, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.0821</code></pre>
+<pre><code>[1] 0.0842</code></pre>
 </div>
 </div>
 <p>But what we really want to know is the covariance of the true PGS with RLRS. That will give us the average true PGS in the next generation - measured in standard deviations.</p>
@@ -302,13 +302,13 @@ R^2 (pgs) = R^2 (pgs^*)\times \frac{Var(pgs^*)}{Var(pgs)} \\
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>coef_pgs_true_rescaled</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>pgs_true_rescaled 
-            0.495 </code></pre>
+            0.496 </code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Ratio of coefficients...</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>coef_pgs<span class="sc">/</span>coef_pgs_true_rescaled</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  pgs 
-0.166 </code></pre>
+0.167 </code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ... is indeed close to ratio of R2 on education, to heritability</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>r2_EA_pgs<span class="sc">/</span>h2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -329,7 +329,7 @@ sd(orig. pgs) =\sqrt{1 + \sigma^2_\eta}
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.201</code></pre>
+<pre><code>[1] 0.203</code></pre>
 </div>
 </div>
 <p>And indeed this is close to the original selection effect of 0.2 .</p>
@@ -365,18 +365,18 @@ sd(orig. pgs) =\sqrt{1 + \sigma^2_\eta}
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the selection effect in terms of predicted years of education:</span></span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cov</span>(pop<span class="sc">$</span>rlrs, pop<span class="sc">$</span>pgs_true_years)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.255</code></pre>
+<pre><code>[1] 0.257</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">weighted.mean</span>(pop<span class="sc">$</span>pgs_true_years, pop<span class="sc">$</span>rlrs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.252</code></pre>
+<pre><code>[1] 0.26</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># our estimate of the selection effect, </span></span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="co"># rescaled by the standard deviation of EA in years:</span></span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat <span class="sc">*</span> eff_pgs_true</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>pgs_true 
-   0.255 </code></pre>
+   0.258 </code></pre>
 </div>
 </div>
 <p>But how do we work out the rescaling factor? We can work it out by taking the square root of the heritability (as an estimate of the effect size of <span class="math inline">\(pgs^*\)</span> on EA in standard deviations); and multiplying by the s.d. of EA in years (here 2):</p>
@@ -393,7 +393,7 @@ sd(orig. pgs) =\sqrt{1 + \sigma^2_\eta}
 <div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># selection effect measured in years of education</span></span>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>cov_rlrs_pgs_true_hat <span class="sc">*</span> <span class="fu">sqrt</span>(h2) <span class="sc">*</span> sd_ea_years</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.254</code></pre>
+<pre><code>[1] 0.257</code></pre>
 </div>
 </div>
 </section>
