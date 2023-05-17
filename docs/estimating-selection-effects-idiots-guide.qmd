@@ -43,6 +43,9 @@ norm2negbin <- function (x, size, prob, mu = mean(x),
     p <- stats::pnorm(x, mu, sd)
     stats::qnbinom(p, size = size, prob = prob, mu = mu)
 }
+
+nice_n <- function (x) prettyNum(x, scientific = FALSE, 
+                                 big.mark = ",")
 ```
 
 Now we'll create our data.
@@ -52,6 +55,9 @@ Now we'll create our data.
 # I'll use a big sample to show that the estimates are indeed
 # accurate "in the limit"
 n <- 1e6
+
+# For labels
+
 # This is what we'd like to estimate:
 selection_effect <- 0.1
 
@@ -98,6 +104,18 @@ weighted.mean(pop$pgs_true, pop$rlrs)
 
 ```
 
+And here's the plot:
+
+```{r plot-true-pgs}
+#| fig-cap: !expr paste("Individual true PGS against Relative Lifetime Reproductive Success,", nice_n(n), "simulated individuals and linear regression line")
+ggplot(pop, aes(pgs_true, rlrs)) + 
+  geom_point(alpha = 0.05, pch = ".", 
+             position = position_jitter(height = 0.2)) +
+  geom_smooth(method = "lm", formula = y~x, color = "red") +
+  coord_cartesian(ylim = c(0, 3)) + 
+  labs(x = "True PGS", y = "RLRS")
+```
+
 Let's also simulate data on individuals' educational attainment. For simplicity I'll just normalize this to mean 0, variance 1.
 
 ```{r simulate-population-ea}
@@ -111,6 +129,8 @@ We can check that indeed, the regression of educational attainment on the true P
 ```{r check-heritability}
 rsq(EA ~ pgs_true)
 ```
+
+## PGS with measurement error
 
 Now let's move into the world of the analyst. We don't see the true PGS, we just have one measured with error. We can think of it as the true score plus some random noise:
 
@@ -187,7 +207,23 @@ weighted.mean(pop$pgs, pop$rlrs)
 
 ```
 
-But what we really want to know is the covariance of the true PGS with RLRS. That will give us the average true PGS in the next generation - measured in standard deviations.
+Compare the plot of measured PGS $p$ against RLRS to the previous plot, which used the true PGS $p^*$:
+
+```{r plot-measured-pgs}
+#| fig-cap: !expr paste("Individual measured PGS against Relative Lifetime Reproductive Success,", nice_n(n), "simulated individuals and linear regression line")
+
+ggplot(pop, aes(pgs, rlrs)) + 
+  geom_point(alpha = 0.05, pch = ".", 
+             position = position_jitter(height = 0.2)) +
+  geom_smooth(method = "lm", formula = y~x, color = "darkgreen") +
+  coord_cartesian(ylim = c(0, 3)) + 
+  labs(x = "Measured PGS", y = "RLRS")
+
+```
+
+## Correcting our estimates
+
+But what we really want to know is the covariance of the true PGS with RLRS. That will give us the average true PGS in the next generation.
 
 To do this, we have to do two things:
 
