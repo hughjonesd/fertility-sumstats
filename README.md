@@ -11,3 +11,5 @@ and call `renv::restore()` to install
 other required libraries.
 
 The current version of the working paper is the PDF file above.
+
+This repository also hosts ["Correcting selection effects of noisy polygenic scores: an idiot's guide"](https://hughjonesd.github.io/fertility-sumstats/estimating-selection-effects-idiots-guide.html). The raw quarto file is available in the docs/ folder.
