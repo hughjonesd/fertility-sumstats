@@ -106,7 +106,7 @@ where $\eta \sim N(0,\sigma^2_\eta)$. So $\sigma^2_\eta$ gives the relative amou
 Of course, we don't see that variable. If so, we could just calculate $\sigma^2_\eta$ directly by looking at its variance! Instead, we get a standardized PGS with mean 0 variance 1 and we have to estimate how much of that is noise:
 
 $$
-pgs = \frac{pgs^* + \eta}{sd(pgs)}
+pgs = \frac{pgs^* + \eta}{sd(pgs^*)}
 $$
 
 ```{r simulate-measured-pgs}
